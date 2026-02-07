@@ -88,6 +88,18 @@ def get_menu_cars_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def get_day_label(tomorrow: bool = False) -> str:
+    """Возвращает строку с датой и днём недели"""
+    days_ru = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    now = datetime.now(MSK)
+    if tomorrow:
+        target = now + timedelta(days=1)
+    else:
+        target = now
+    day_name = days_ru[target.weekday()]
+    return f"{target.strftime('%d.%m')} ({day_name})"
+
+
 def get_time_keyboard(car_id: int, tomorrow: bool = False) -> InlineKeyboardMarkup:
     """Клавиатура с выбором времени (6-21 с шагом 1 час)"""
     buttons = []
@@ -106,11 +118,14 @@ def get_time_keyboard(car_id: int, tomorrow: bool = False) -> InlineKeyboardMark
     if row:
         buttons.append(row)
 
-    # Кнопки "Сегодня" / "Завтра"
+    # Кнопки "Сегодня" / "Завтра" с датой
+    today_label = get_day_label(False)
+    tomorrow_label = get_day_label(True)
+
     if tomorrow:
-        buttons.append([InlineKeyboardButton(text="⬅️ Сегодня", callback_data=f"day:{car_id}:today")])
+        buttons.append([InlineKeyboardButton(text=f"⬅️ Сегодня {today_label}", callback_data=f"day:{car_id}:today")])
     else:
-        buttons.append([InlineKeyboardButton(text="Завтра ➡️", callback_data=f"day:{car_id}:tomorrow")])
+        buttons.append([InlineKeyboardButton(text=f"Завтра {tomorrow_label} ➡️", callback_data=f"day:{car_id}:tomorrow")])
 
     buttons.append([InlineKeyboardButton(text="Отмена", callback_data="cancel")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -250,8 +265,10 @@ async def callback_menu_car(callback: CallbackQuery):
         await callback.answer()
         return
 
+    day_label = get_day_label(False)
+
     await callback.message.edit_text(
-        f"Машина: {car[1]} ({car[2]})\n\nВыбери время:",
+        f"Машина: {car[1]} ({car[2]})\n📅 Сегодня {day_label}\n\nВыбери время:",
         reply_markup=get_time_keyboard(car_id, tomorrow=False)
     )
     await callback.answer()
@@ -271,10 +288,11 @@ async def callback_switch_day(callback: CallbackQuery):
         return
 
     tomorrow = (day == "tomorrow")
-    day_text = "завтра" if tomorrow else "сегодня"
+    day_label = get_day_label(tomorrow)
+    day_text = "Завтра" if tomorrow else "Сегодня"
 
     await callback.message.edit_text(
-        f"Машина: {car[1]} ({car[2]})\nДень: {day_text}\n\nВыбери время:",
+        f"Машина: {car[1]} ({car[2]})\n📅 {day_text} {day_label}\n\nВыбери время:",
         reply_markup=get_time_keyboard(car_id, tomorrow=tomorrow)
     )
     await callback.answer()
