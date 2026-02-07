@@ -1,7 +1,10 @@
 import asyncio
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from aiogram import Bot, Dispatcher, types, F
+
+# Московский часовой пояс (UTC+3)
+MSK = timezone(timedelta(hours=3))
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
@@ -25,7 +28,7 @@ pending_car = {}  # для меню "+"
 def parse_time(time_str: str) -> datetime | None:
     """Парсит время из строки"""
     time_str = time_str.strip().lower()
-    now = datetime.now()
+    now = datetime.now(MSK)
     target_date = now.date()
 
     if "завтра" in time_str:
@@ -294,7 +297,7 @@ async def callback_select_time(callback: CallbackQuery):
     car_id, car_name, car_number, car_model = car
 
     # Формируем дату и время
-    now = datetime.now()
+    now = datetime.now(MSK)
     if day == "tomorrow":
         target_date = (now + timedelta(days=1)).date()
     else:
